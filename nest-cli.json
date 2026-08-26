@@ -43,7 +43,13 @@
       "entryFile": "main",
       "sourceRoot": "apps/order/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/order/tsconfig.app.json"
+        "tsConfigPath": "apps/order/tsconfig.app.json",
+        "assets": [
+          {
+            "include": "generated/**/*",
+            "watchAssets": true
+          }
+        ]
       }
     },
     "tracking": {

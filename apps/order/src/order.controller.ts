@@ -1,13 +1,35 @@
-import { Controller } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderService } from './order.service';
 
 @Controller()
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
-  @MessagePattern({ cmd: 'health' })
+  @Get('health')
   getHealth() {
     return this.orderService.getHealth();
+  }
+
+  @Post('orders')
+  create(@Body() dto: CreateOrderDto) {
+    return this.orderService.create(dto);
+  }
+
+  @Patch('orders/:id/status')
+  updateStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateOrderStatusDto,
+  ) {
+    return this.orderService.updateStatus(id, dto);
   }
 }

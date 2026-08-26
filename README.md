@@ -7,7 +7,7 @@ NestJS monorepo. `web/` is the frontend. `scripts/` is for seeding and checks.
 | App | Role | Port |
 | --- | --- | --- |
 | `api-gateway` | HTTP entry for the frontend | 3000 |
-| `order` | TCP microservice | 3001 |
+| `order` | HTTP + Kafka producer | 3001 |
 | `dispatch` | TCP microservice | 3002 |
 | `tracking` | TCP microservice | 3003 |
 | `driver` | TCP microservice | 3004 |
@@ -46,6 +46,25 @@ docker compose down -v
 ```
 
 Connection strings are in `.env.example`.
+
+## Order service
+
+Order is an HTTP service. Create writes the order and an `outbox` row in one transaction, then an in-process relay publishes Kafka topic `order.created` (with a 10s cron fallback).
+
+```bash
+npx prisma migrate dev --schema apps/order/prisma/schema.prisma --name init_orders
+npm run start:order
+```
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `POST` | `/orders` | body: `merchantId`, `latitude`, `longitude`, optional `clientOrderId` |
+| `PATCH` | `/orders/:id/status` | body: `status`, optional `assignedDriverId` |
+| `GET` | `/health` | |
+
+Statuses: `PENDING_DISPATCH`, `OFFERED`, `ASSIGNED`, `COMPLETED`, `CANCELLED`. New orders start as `PENDING_DISPATCH`.
+
+The same create/status routes are proxied on the API gateway (`http://localhost:3000`).
 
 ## Run Nest apps
 
