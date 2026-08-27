@@ -27,6 +27,8 @@
     "prisma:order:migrate": "prisma migrate dev --schema apps/order/prisma/schema.prisma",
     "prisma:dispatch:generate": "prisma generate --schema apps/dispatch/prisma/schema.prisma",
     "prisma:dispatch:migrate": "prisma migrate dev --schema apps/dispatch/prisma/schema.prisma",
+    "prisma:tracking:generate": "prisma generate --schema apps/tracking/prisma/schema.prisma",
+    "prisma:tracking:migrate": "prisma migrate dev --schema apps/tracking/prisma/schema.prisma",
     "prisma:driver:generate": "prisma generate --schema apps/driver/prisma/schema.prisma",
     "prisma:driver:migrate": "prisma migrate dev --schema apps/driver/prisma/schema.prisma",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",

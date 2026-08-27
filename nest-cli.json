@@ -70,7 +70,13 @@
       "entryFile": "main",
       "sourceRoot": "apps/tracking/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/tracking/tsconfig.app.json"
+        "tsConfigPath": "apps/tracking/tsconfig.app.json",
+        "assets": [
+          {
+            "include": "generated/**/*",
+            "watchAssets": true
+          }
+        ]
       }
     }
   }

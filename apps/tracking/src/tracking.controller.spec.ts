@@ -8,7 +8,17 @@ describe('TrackingController', () => {
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [TrackingController],
-      providers: [TrackingService],
+      providers: [
+        {
+          provide: TrackingService,
+          useValue: {
+            getHealth: () => ({ status: 'ok', service: 'tracking' }),
+            findByOrderId: jest.fn(),
+            recordOrderCreated: jest.fn(),
+            recordEvent: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     trackingController = app.get<TrackingController>(TrackingController);

@@ -4,12 +4,12 @@ import { AppService } from './app.service';
 import { DispatchHttpService } from './dispatch-http.service';
 import { DriverHttpService } from './driver-http.service';
 import { OrderHttpService } from './order-http.service';
+import { TrackingHttpService } from './tracking-http.service';
 
 describe('AppController', () => {
   let appController: AppController;
 
   beforeEach(async () => {
-    const mockClient = { send: jest.fn() };
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
       providers: [
@@ -26,7 +26,10 @@ describe('AppController', () => {
           provide: DispatchHttpService,
           useValue: { health: jest.fn(), findAll: jest.fn() },
         },
-        { provide: 'TRACKING_SERVICE', useValue: mockClient },
+        {
+          provide: TrackingHttpService,
+          useValue: { health: jest.fn(), getTimeline: jest.fn() },
+        },
       ],
     }).compile();
 

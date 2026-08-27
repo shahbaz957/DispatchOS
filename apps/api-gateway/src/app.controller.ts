@@ -2,33 +2,26 @@ import {
   Body,
   Controller,
   Get,
-  Inject,
   NotFoundException,
   Param,
   Patch,
   Post,
 } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
 import { AppService } from './app.service';
 import { DispatchHttpService } from './dispatch-http.service';
 import { DriverHttpService } from './driver-http.service';
 import { OrderHttpService } from './order-http.service';
+import { TrackingHttpService } from './tracking-http.service';
 
 @Controller()
 export class AppController {
-  private readonly clients: Record<string, ClientProxy>;
-
   constructor(
     private readonly appService: AppService,
     private readonly orderHttp: OrderHttpService,
     private readonly driverHttp: DriverHttpService,
     private readonly dispatchHttp: DispatchHttpService,
-    @Inject('TRACKING_SERVICE') private readonly trackingClient: ClientProxy,
-  ) {
-    this.clients = {
-      tracking: this.trackingClient,
-    };
-  }
+    private readonly trackingHttp: TrackingHttpService,
+  ) {}
 
   @Get()
   getHello(): string {
@@ -51,11 +44,10 @@ export class AppController {
     if (service === 'dispatch') {
       return this.dispatchHttp.health();
     }
-    const client = this.clients[service];
-    if (!client) {
-      throw new NotFoundException(`Unknown service: ${service}`);
+    if (service === 'tracking') {
+      return this.trackingHttp.health();
     }
-    return client.send({ cmd: 'health' }, {});
+    throw new NotFoundException(`Unknown service: ${service}`);
   }
 
   @Post('orders')
@@ -66,6 +58,11 @@ export class AppController {
   @Patch('orders/:id/status')
   updateOrderStatus(@Param('id') id: string, @Body() body: unknown) {
     return this.orderHttp.updateStatus(id, body);
+  }
+
+  @Get('orders/:id/timeline')
+  getOrderTimeline(@Param('id') id: string) {
+    return this.trackingHttp.getTimeline(id);
   }
 
   @Get('assignments')

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TrackingController } from './../src/tracking.controller';
 import { TrackingModule } from './../src/tracking.module';
+import { PrismaService } from './../src/prisma.service';
 
 describe('TrackingController (e2e)', () => {
   let trackingController: TrackingController;
@@ -8,7 +9,17 @@ describe('TrackingController (e2e)', () => {
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [TrackingModule],
-    }).compile();
+    })
+      .overrideProvider(PrismaService)
+      .useValue({
+        $connect: jest.fn(),
+        $disconnect: jest.fn(),
+        orderTimeline: {
+          findMany: jest.fn().mockResolvedValue([]),
+          create: jest.fn(),
+        },
+      })
+      .compile();
 
     trackingController = moduleFixture.get(TrackingController);
   });

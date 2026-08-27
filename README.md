@@ -9,7 +9,7 @@ NestJS monorepo. `web/` is the frontend. `scripts/` is for seeding and checks.
 | `api-gateway` | HTTP entry for the frontend | 3000 |
 | `order` | HTTP + Kafka producer/consumer | 3001 |
 | `dispatch` | HTTP + Kafka matching engine | 3002 |
-| `tracking` | TCP microservice | 3003 |
+| `tracking` | HTTP + Kafka timeline | 3003 |
 | `driver` | HTTP + Kafka + Redis geo | 3004 |
 
 ## Infra (Docker)
@@ -85,6 +85,24 @@ npm run start:dispatch
 Statuses: `OFFERED`, `CONFIRMED`, `REJECTED`, `TIMEOUT`, `CANCELLED`, `COMPLETED`.
 
 The assignments list and health route are proxied on the API gateway.
+
+## Tracking service
+
+Tracking is append-only. It consumes `order.created`, `dispatch.events`, and `driver.events` in consumer group `tracking-consumer` and inserts into `order_timeline`. Unique `(orderId, eventId)` ignores Kafka re-deliveries.
+
+Recorded types: `order.created`, `ASSIGNMENT_OFFERED`, `ASSIGNMENT_TIMEOUT`, `ASSIGNMENT_ACCEPTED`, `ASSIGNMENT_REJECTED`, `ORDER_COMPLETED`, `ORDER_CANCELLED`.
+
+```bash
+npx prisma migrate dev --schema apps/tracking/prisma/schema.prisma --name init_order_timeline
+npm run start:tracking
+```
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `GET` | `/orders/:id/timeline` | events for one order, oldest first |
+| `GET` | `/health` | |
+
+The timeline route is proxied on the API gateway (`GET /orders/:id/timeline`).
 
 ## Driver service
 
