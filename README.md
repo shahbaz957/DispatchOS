@@ -7,7 +7,7 @@ NestJS monorepo. `web/` is the frontend. `scripts/` is for seeding and checks.
 | App | Role | Port |
 | --- | --- | --- |
 | `api-gateway` | HTTP entry for the frontend | 3000 |
-| `order` | HTTP + Kafka producer | 3001 |
+| `order` | HTTP + Kafka producer/consumer | 3001 |
 | `dispatch` | HTTP + Kafka matching engine | 3002 |
 | `tracking` | TCP microservice | 3003 |
 | `driver` | HTTP + Kafka + Redis geo | 3004 |
@@ -49,7 +49,7 @@ Connection strings are in `.env.example`.
 
 ## Order service
 
-Order is an HTTP service. Create writes the order and an `outbox` row in one transaction, then an in-process relay publishes Kafka topic `order.created` (with a 10s cron fallback).
+Order is an HTTP service. Create writes the order and an `outbox` row in one transaction, then an in-process relay publishes Kafka topic `order.created` (with a 10s cron fallback). It also consumes `dispatch.events` and updates order status: `ASSIGNMENT_OFFERED` → `OFFERED`, `ASSIGNMENT_CONFIRMED` → `ASSIGNED`, `ASSIGNMENT_COMPLETED` → `COMPLETED`, `ASSIGNMENT_CANCELLED` → `CANCELLED`.
 
 ```bash
 npx prisma migrate dev --schema apps/order/prisma/schema.prisma --name init_orders

@@ -15,6 +15,7 @@ describe('OrderController', () => {
             getHealth: () => ({ status: 'ok', service: 'order' }),
             create: jest.fn(),
             updateStatus: jest.fn(),
+            handleDispatchEvent: jest.fn(),
           },
         },
       ],

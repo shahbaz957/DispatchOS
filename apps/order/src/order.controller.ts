@@ -7,9 +7,10 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { EventPattern, Payload } from '@nestjs/microservices';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import { OrderService } from './order.service';
+import { DispatchOrderEvent, OrderService } from './order.service';
 
 @Controller()
 export class OrderController {
@@ -31,5 +32,10 @@ export class OrderController {
     @Body() dto: UpdateOrderStatusDto,
   ) {
     return this.orderService.updateStatus(id, dto);
+  }
+
+  @EventPattern('dispatch.events')
+  handleDispatchEvents(@Payload() event: DispatchOrderEvent) {
+    return this.orderService.handleDispatchEvent(event);
   }
 }

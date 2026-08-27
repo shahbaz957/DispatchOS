@@ -1,15 +1,29 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Prisma } from './generated/prisma';
+import { OrderStatus, Prisma } from './generated/prisma';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { DispatchOrderEventType } from './enums/dispatch-order-event-type.enum';
 import { PrismaService } from './prisma.service';
+
+export type DispatchOrderEvent = {
+  eventType?: string;
+  orderId?: string;
+  driverId?: string;
+};
 
 export const ORDER_CREATED_TOPIC = 'order.created';
 export const OUTBOX_CREATED_EVENT = 'outbox.event_created';
 
 @Injectable()
 export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
@@ -92,5 +106,56 @@ export class OrderService {
       }
       throw error;
     }
+  }
+
+  async handleDispatchEvent(event: DispatchOrderEvent) {
+    if (!event?.eventType || !event.orderId) {
+      return;
+    }
+
+    const status = this.statusFromDispatchEvent(event.eventType);
+    if (!status) {
+      return;
+    }
+
+    try {
+      await this.prisma.order.update({
+        where: { id: event.orderId },
+        data: {
+          status,
+          ...(event.driverId ? { assignedDriverId: event.driverId } : {}),
+        },
+      });
+      this.logger.log(
+        `Order ${event.orderId} set to ${status} from ${event.eventType}`,
+      );
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        this.logger.warn(
+          `Dispatch event ${event.eventType} for unknown order ${event.orderId}`,
+        );
+        return;
+      }
+      throw error;
+    }
+  }
+
+  private statusFromDispatchEvent(eventType: string): OrderStatus | null {
+    if (eventType === DispatchOrderEventType.ASSIGNMENT_OFFERED) {
+      return OrderStatus.OFFERED;
+    }
+    if (eventType === DispatchOrderEventType.ASSIGNMENT_CONFIRMED) {
+      return OrderStatus.ASSIGNED;
+    }
+    if (eventType === DispatchOrderEventType.ASSIGNMENT_COMPLETED) {
+      return OrderStatus.COMPLETED;
+    }
+    if (eventType === DispatchOrderEventType.ASSIGNMENT_CANCELLED) {
+      return OrderStatus.CANCELLED;
+    }
+    return null;
   }
 }
