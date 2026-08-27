@@ -8,7 +8,17 @@ describe('DispatchController', () => {
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [DispatchController],
-      providers: [DispatchService],
+      providers: [
+        {
+          provide: DispatchService,
+          useValue: {
+            getHealth: () => ({ status: 'ok', service: 'dispatch' }),
+            findAll: jest.fn(),
+            handleOrderCreated: jest.fn(),
+            handleDriverEvent: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     dispatchController = app.get<DispatchController>(DispatchController);

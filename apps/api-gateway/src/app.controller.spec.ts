@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { DispatchHttpService } from './dispatch-http.service';
+import { DriverHttpService } from './driver-http.service';
 import { OrderHttpService } from './order-http.service';
 
 describe('AppController', () => {
@@ -16,9 +18,15 @@ describe('AppController', () => {
           provide: OrderHttpService,
           useValue: { health: jest.fn(), createOrder: jest.fn() },
         },
-        { provide: 'DISPATCH_SERVICE', useValue: mockClient },
+        {
+          provide: DriverHttpService,
+          useValue: { health: jest.fn(), findAll: jest.fn() },
+        },
+        {
+          provide: DispatchHttpService,
+          useValue: { health: jest.fn(), findAll: jest.fn() },
+        },
         { provide: 'TRACKING_SERVICE', useValue: mockClient },
-        { provide: 'DRIVER_SERVICE', useValue: mockClient },
       ],
     }).compile();
 

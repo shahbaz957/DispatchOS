@@ -25,7 +25,13 @@
       "entryFile": "main",
       "sourceRoot": "apps/dispatch/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/dispatch/tsconfig.app.json"
+        "tsConfigPath": "apps/dispatch/tsconfig.app.json",
+        "assets": [
+          {
+            "include": "generated/**/*",
+            "watchAssets": true
+          }
+        ]
       }
     },
     "driver": {
@@ -34,7 +40,13 @@
       "entryFile": "main",
       "sourceRoot": "apps/driver/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/driver/tsconfig.app.json"
+        "tsConfigPath": "apps/driver/tsconfig.app.json",
+        "assets": [
+          {
+            "include": "generated/**/*",
+            "watchAssets": true
+          }
+        ]
       }
     },
     "order": {

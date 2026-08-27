@@ -8,9 +8,9 @@ NestJS monorepo. `web/` is the frontend. `scripts/` is for seeding and checks.
 | --- | --- | --- |
 | `api-gateway` | HTTP entry for the frontend | 3000 |
 | `order` | HTTP + Kafka producer | 3001 |
-| `dispatch` | TCP microservice | 3002 |
+| `dispatch` | HTTP + Kafka matching engine | 3002 |
 | `tracking` | TCP microservice | 3003 |
-| `driver` | TCP microservice | 3004 |
+| `driver` | HTTP + Kafka + Redis geo | 3004 |
 
 ## Infra (Docker)
 
@@ -65,6 +65,45 @@ npm run start:order
 Statuses: `PENDING_DISPATCH`, `OFFERED`, `ASSIGNED`, `COMPLETED`, `CANCELLED`. New orders start as `PENDING_DISPATCH`.
 
 The same create/status routes are proxied on the API gateway (`http://localhost:3000`).
+
+## Dispatch service
+
+Dispatch consumes Kafka `order.created` and `driver.events`, writes assignment rows, and emits `dispatch.events`. Nearby drivers come from Redis `GEOSEARCH drivers:geo` (5 km). Offers use `SET lock:driver:{id} {orderId} NX EX 30`.
+
+Pickup lat/lng are stored on each assignment so reject/timeout can match again without calling order-service. Driver cancel after accept marks the assignment `CANCELLED` and does **not** re-dispatch. A merchant retry later should create a **new order** (new `order_id`) so unique constraints stay clean.
+
+```bash
+npx prisma migrate dev --schema apps/dispatch/prisma/schema.prisma --name init_assignments
+npm run start:dispatch
+```
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `GET` | `/assignments` | list assignment attempts |
+| `GET` | `/health` | |
+
+Statuses: `OFFERED`, `CONFIRMED`, `REJECTED`, `TIMEOUT`, `CANCELLED`, `COMPLETED`.
+
+The assignments list and health route are proxied on the API gateway.
+
+## Driver service
+
+Driver is the database of record for identity/status/location. Redis holds `driver:{id}:status` and the `drivers:geo` index. Status updates publish Kafka topic `driver.events` (partition key = driver id). The service also consumes `dispatch.events` for `ASSIGNMENT_OFFERED` / `ASSIGNMENT_TIMEOUT`.
+
+```bash
+npx prisma migrate dev --schema apps/driver/prisma/schema.prisma --name init_drivers
+npm run start:driver
+```
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `GET` | `/drivers` | list drivers |
+| `PATCH` | `/drivers/:id/status` | body: `status`, optional `action`, `latitude`, `longitude`, `orderId` |
+| `GET` | `/health` | |
+
+Statuses: `OFFLINE`, `AVAILABLE`, `OFFERED`, `BUSY`. Actions: `ACCEPT`, `DECLINE`, `COMPLETE`, `CANCEL`. `COMPLETE` requires drop-off lat/lng.
+
+The same driver routes are proxied on the API gateway.
 
 ## Run Nest apps
 

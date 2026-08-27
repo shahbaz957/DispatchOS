@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DISPATCH_DATABASE_URL")
+}
+
+enum AssignmentStatus {
+  OFFERED
+  CONFIRMED
+  REJECTED
+  TIMEOUT
+  CANCELLED
+  COMPLETED
+}
+
+model Assignment {
+  id         String           @id @default(uuid()) @db.Uuid
+  orderId    String           @map("order_id") @db.Uuid
+  driverId   String           @map("driver_id") @db.Uuid
+  status     AssignmentStatus @default(OFFERED)
+  attempt    Int              @default(1)
+  latitude   Float
+  longitude  Float
+  expiresAt  DateTime         @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([orderId, attempt])
+  @@index([orderId])
+  @@index([driverId])
+  @@map("assignments")
+}

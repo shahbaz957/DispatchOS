@@ -8,7 +8,17 @@ describe('DriverController', () => {
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [DriverController],
-      providers: [DriverService],
+      providers: [
+        {
+          provide: DriverService,
+          useValue: {
+            getHealth: () => ({ status: 'ok', service: 'driver' }),
+            findAll: jest.fn(),
+            updateStatus: jest.fn(),
+            handleDispatchOfferChange: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     driverController = app.get<DriverController>(DriverController);
