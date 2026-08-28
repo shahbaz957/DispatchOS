@@ -13,6 +13,7 @@ describe('OrderController', () => {
           provide: OrderService,
           useValue: {
             getHealth: () => ({ status: 'ok', service: 'order' }),
+            findAll: jest.fn(),
             create: jest.fn(),
             updateStatus: jest.fn(),
             handleDispatchEvent: jest.fn(),

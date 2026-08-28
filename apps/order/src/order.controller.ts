@@ -21,6 +21,11 @@ export class OrderController {
     return this.orderService.getHealth();
   }
 
+  @Get('orders')
+  findAll() {
+    return this.orderService.findAll();
+  }
+
   @Post('orders')
   create(@Body() dto: CreateOrderDto) {
     return this.orderService.create(dto);

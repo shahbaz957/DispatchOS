@@ -58,6 +58,7 @@ npm run start:order
 
 | Method | Path | Notes |
 | --- | --- | --- |
+| `GET` | `/orders` | list orders, newest first |
 | `POST` | `/orders` | body: `merchantId`, `latitude`, `longitude`, optional `clientOrderId` |
 | `PATCH` | `/orders/:id/status` | body: `status`, optional `assignedDriverId` |
 | `GET` | `/health` | |
@@ -122,6 +123,19 @@ npm run start:driver
 Statuses: `OFFLINE`, `AVAILABLE`, `OFFERED`, `BUSY`. Actions: `ACCEPT`, `DECLINE`, `COMPLETE`, `CANCEL`. `COMPLETE` requires drop-off lat/lng.
 
 The same driver routes are proxied on the API gateway.
+
+## Frontend
+
+The Next.js control panel lives in `web/` on port **3005** (gateway already uses 3000).
+
+```bash
+cd web
+copy .env.example .env.local
+npm install
+npm run dev
+```
+
+Open `http://localhost:3005`. It calls the gateway at `http://127.0.0.1:3000`.
 
 ## Run Nest apps
 

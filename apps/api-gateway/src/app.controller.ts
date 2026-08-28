@@ -50,6 +50,11 @@ export class AppController {
     throw new NotFoundException(`Unknown service: ${service}`);
   }
 
+  @Get('orders')
+  findOrders() {
+    return this.orderHttp.findAll();
+  }
+
   @Post('orders')
   createOrder(@Body() body: unknown) {
     return this.orderHttp.createOrder(body);

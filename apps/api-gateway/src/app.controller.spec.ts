@@ -16,7 +16,7 @@ describe('AppController', () => {
         AppService,
         {
           provide: OrderHttpService,
-          useValue: { health: jest.fn(), createOrder: jest.fn() },
+          useValue: { health: jest.fn(), findAll: jest.fn(), createOrder: jest.fn() },
         },
         {
           provide: DriverHttpService,

@@ -20,6 +20,10 @@ export class OrderHttpService {
     return this.request('/health');
   }
 
+  findAll() {
+    return this.request('/orders');
+  }
+
   createOrder(body: unknown) {
     return this.request('/orders', {
       method: 'POST',

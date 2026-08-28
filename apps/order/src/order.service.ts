@@ -33,6 +33,12 @@ export class OrderService {
     return { status: 'ok', service: 'order' };
   }
 
+  findAll() {
+    return this.prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async create(dto: CreateOrderDto) {
     try {
       const { order, outboxRecord } = await this.prisma.$transaction(
