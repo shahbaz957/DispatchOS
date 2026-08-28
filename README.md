@@ -2,6 +2,8 @@
 
 Event-driven dispatch platform built with NestJS. Orders are created via HTTP, matched to nearby drivers through Redis geo + locks, and tracked in an append-only timeline. A Next.js control panel simulates merchants and drivers against the live stack.
 
+![DispatchOS control panel](web/public/dispatchos.png)
+
 ## Features
 
 - **Order service** — transactional outbox → Kafka `order.created`

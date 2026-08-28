@@ -2,6 +2,8 @@
 
 Next.js control panel for order and driver simulation.
 
+![DispatchOS control panel](public/dispatchos.png)
+
 ## Setup
 
 From the repo root (recommended):
