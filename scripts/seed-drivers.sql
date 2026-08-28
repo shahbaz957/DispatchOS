@@ -1,4 +1,5 @@
 -- Seed sample drivers for the simulation UI.
+-- Postgres only — drivers enter Redis when they go ONLINE via the API/UI.
 -- Run after driver migrations:
 --   psql postgresql://driver:driver@localhost:5436/driver_db -f scripts/seed-drivers.sql
 
