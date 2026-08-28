@@ -69,7 +69,7 @@ The same create/status routes are proxied on the API gateway (`http://localhost:
 
 ## Dispatch service
 
-Dispatch consumes Kafka `order.created` and `driver.events`, writes assignment rows, and emits `dispatch.events`. Matching prefers drivers within **5 km** (`GEOSEARCH`), then falls back to the nearest available driver beyond 5 km. On decline or timeout, the next nearest untried driver is offered until the list is exhausted.
+Dispatch consumes Kafka `order.created` and `driver.events`, writes assignment rows, and emits `dispatch.events`. Matching prefers drivers within **5 km** (`GEOSEARCH`), then falls back to the nearest available driver beyond 5 km. On decline or timeout, the next nearest untried driver is offered until the list is exhausted. A 5s background job also re-offers orders stuck after rejections/timeouts when a new driver comes online.
 
 Pickup lat/lng are stored on each assignment so reject/timeout can match again without calling order-service. Driver cancel after accept marks the assignment `CANCELLED` and does **not** re-dispatch. A merchant retry later should create a **new order** (new `order_id`) so unique constraints stay clean.
 

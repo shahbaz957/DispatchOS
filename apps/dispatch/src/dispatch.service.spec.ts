@@ -82,6 +82,57 @@ describe('DispatchService', () => {
     );
   });
 
+  it('retries when a new driver comes online after prior rejections', async () => {
+    const orderId = '11111111-1111-1111-1111-111111111111';
+    const newDriverId = '33333333-3333-3333-3333-333333333333';
+
+    prisma.assignment.findMany
+      .mockResolvedValueOnce([
+        {
+          orderId,
+          status: AssignmentStatus.REJECTED,
+          latitude: 24.86,
+          longitude: 67.0,
+        },
+        {
+          orderId,
+          status: AssignmentStatus.REJECTED,
+          latitude: 24.86,
+          longitude: 67.0,
+        },
+      ])
+      .mockResolvedValueOnce([
+        { driverId: '11111111-1111-1111-1111-111111111111' },
+        { driverId: '22222222-2222-2222-2222-222222222222' },
+      ])
+      .mockResolvedValueOnce([
+        { driverId: '11111111-1111-1111-1111-111111111111' },
+        { driverId: '22222222-2222-2222-2222-222222222222' },
+      ]);
+
+    prisma.assignment.findFirst.mockResolvedValue({ attempt: 2 });
+    redis.call
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([newDriverId])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([newDriverId]);
+    redis.get.mockResolvedValue('AVAILABLE');
+    redis.set.mockResolvedValue('OK');
+    prisma.assignment.create.mockResolvedValue({ id: 'a3' });
+
+    await service.retryPendingOrders();
+
+    expect(prisma.assignment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          orderId,
+          driverId: newDriverId,
+          attempt: 3,
+        }),
+      }),
+    );
+  });
+
   it('cancels a confirmed assignment without offering another driver', async () => {
     prisma.assignment.findFirst.mockResolvedValue({
       id: 'a1',

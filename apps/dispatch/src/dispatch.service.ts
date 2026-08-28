@@ -140,6 +140,29 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** Re-offer when new drivers come online after all prior attempts were rejected or timed out. */
+  @Cron(CronExpression.EVERY_5_SECONDS)
+  async retryPendingOrders() {
+    const orders = await this.findOrdersNeedingRetry();
+    for (const order of orders) {
+      const canRetry = await this.hasUntriedAvailableDriver(
+        order.orderId,
+        order.longitude,
+        order.latitude,
+      );
+      if (!canRetry) {
+        continue;
+      }
+
+      this.logger.log(`Retrying dispatch for order ${order.orderId}`);
+      await this.offerToNearbyDriver(
+        order.orderId,
+        order.latitude,
+        order.longitude,
+      );
+    }
+  }
+
   private async confirmAssignment(orderId: string, driverId: string) {
     const assignment = await this.findOpenOffer(orderId, driverId);
     if (!assignment) {
@@ -312,6 +335,96 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     this.logger.warn(
       `No available driver for order ${orderId} (attempt ${attempt})`,
     );
+  }
+
+  private async findOrdersNeedingRetry() {
+    const assignments = await this.prisma.assignment.findMany({
+      select: {
+        orderId: true,
+        status: true,
+        latitude: true,
+        longitude: true,
+      },
+    });
+
+    const byOrder = new Map<
+      string,
+      { latitude: number; longitude: number; statuses: Set<AssignmentStatus> }
+    >();
+
+    for (const row of assignments) {
+      let entry = byOrder.get(row.orderId);
+      if (!entry) {
+        entry = {
+          latitude: row.latitude,
+          longitude: row.longitude,
+          statuses: new Set(),
+        };
+        byOrder.set(row.orderId, entry);
+      }
+      entry.statuses.add(row.status);
+    }
+
+    const blockingStatuses = new Set<AssignmentStatus>([
+      AssignmentStatus.OFFERED,
+      AssignmentStatus.CONFIRMED,
+      AssignmentStatus.COMPLETED,
+      AssignmentStatus.CANCELLED,
+    ]);
+    const retriableStatuses = new Set<AssignmentStatus>([
+      AssignmentStatus.REJECTED,
+      AssignmentStatus.TIMEOUT,
+    ]);
+
+    const orders: Array<{
+      orderId: string;
+      latitude: number;
+      longitude: number;
+    }> = [];
+
+    for (const [orderId, entry] of byOrder) {
+      const statuses = [...entry.statuses];
+      if (statuses.some((status) => blockingStatuses.has(status))) {
+        continue;
+      }
+      if (!statuses.some((status) => retriableStatuses.has(status))) {
+        continue;
+      }
+      orders.push({
+        orderId,
+        latitude: entry.latitude,
+        longitude: entry.longitude,
+      });
+    }
+
+    return orders;
+  }
+
+  private async hasUntriedAvailableDriver(
+    orderId: string,
+    longitude: number,
+    latitude: number,
+  ) {
+    const previousDrivers = await this.prisma.assignment.findMany({
+      where: { orderId },
+      select: { driverId: true },
+    });
+    const skippedDriverIds = new Set(
+      previousDrivers.map((row) => row.driverId),
+    );
+    const candidates = await this.findCandidateDriverIds(longitude, latitude);
+
+    for (const driverId of candidates) {
+      if (skippedDriverIds.has(driverId)) {
+        continue;
+      }
+      const status = await this.redis.get(`driver:${driverId}:status`);
+      if (status === 'AVAILABLE') {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
