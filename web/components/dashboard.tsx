@@ -183,7 +183,18 @@ export function Dashboard() {
         </div>
       </header>
 
-      {error && <div className="banner">{error}</div>}
+      {error && (
+        <div className="banner">
+          {error}
+          <button
+            className="btn btn-ghost"
+            style={{ marginLeft: 12 }}
+            onClick={() => setError(null)}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="grid-2">
         <OrdersPanel

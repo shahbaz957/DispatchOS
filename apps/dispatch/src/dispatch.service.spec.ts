@@ -56,6 +56,32 @@ describe('DispatchService', () => {
     expect(redis.call).not.toHaveBeenCalled();
   });
 
+  it('offers the nearest driver beyond 5 km when nobody is inside the radius', async () => {
+    prisma.assignment.findFirst.mockResolvedValue(null);
+    prisma.assignment.findMany.mockResolvedValue([]);
+    redis.call
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(['22222222-2222-2222-2222-222222222222']);
+    redis.get.mockResolvedValue('AVAILABLE');
+    redis.set.mockResolvedValue('OK');
+    prisma.assignment.create.mockResolvedValue({ id: 'a1' });
+
+    await service.handleOrderCreated({
+      id: '11111111-1111-1111-1111-111111111111',
+      latitude: 25.87,
+      longitude: 69.0,
+    });
+
+    expect(redis.call).toHaveBeenCalledTimes(2);
+    expect(prisma.assignment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          driverId: '22222222-2222-2222-2222-222222222222',
+        }),
+      }),
+    );
+  });
+
   it('cancels a confirmed assignment without offering another driver', async () => {
     prisma.assignment.findFirst.mockResolvedValue({
       id: 'a1',

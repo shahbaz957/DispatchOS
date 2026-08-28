@@ -7,8 +7,7 @@ import type {
   UpdateDriverStatusBody,
 } from './types';
 
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3000';
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {

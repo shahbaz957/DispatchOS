@@ -6,7 +6,7 @@ NestJS monorepo. `web/` is the frontend. `scripts/` is for seeding and checks.
 
 | App | Role | Port |
 | --- | --- | --- |
-| `api-gateway` | HTTP entry for the frontend | 3000 |
+| `api-gateway` | HTTP entry for the frontend | 3010 |
 | `order` | HTTP + Kafka producer/consumer | 3001 |
 | `dispatch` | HTTP + Kafka matching engine | 3002 |
 | `tracking` | HTTP + Kafka timeline | 3003 |
@@ -65,11 +65,11 @@ npm run start:order
 
 Statuses: `PENDING_DISPATCH`, `OFFERED`, `ASSIGNED`, `COMPLETED`, `CANCELLED`. New orders start as `PENDING_DISPATCH`.
 
-The same create/status routes are proxied on the API gateway (`http://localhost:3000`).
+The same create/status routes are proxied on the API gateway (`http://localhost:3010`).
 
 ## Dispatch service
 
-Dispatch consumes Kafka `order.created` and `driver.events`, writes assignment rows, and emits `dispatch.events`. Nearby drivers come from Redis `GEOSEARCH drivers:geo` (5 km). Offers use `SET lock:driver:{id} {orderId} NX EX 30`.
+Dispatch consumes Kafka `order.created` and `driver.events`, writes assignment rows, and emits `dispatch.events`. Matching prefers drivers within **5 km** (`GEOSEARCH`), then falls back to the nearest available driver beyond 5 km. On decline or timeout, the next nearest untried driver is offered until the list is exhausted.
 
 Pickup lat/lng are stored on each assignment so reject/timeout can match again without calling order-service. Driver cancel after accept marks the assignment `CANCELLED` and does **not** re-dispatch. A merchant retry later should create a **new order** (new `order_id`) so unique constraints stay clean.
 
@@ -135,19 +135,35 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3005`. It calls the gateway at `http://127.0.0.1:3000`.
+Open `http://localhost:3005`. The UI calls `/api/*`, which Next proxies to the gateway on `http://127.0.0.1:3010` (port 3010 avoids conflicts with other apps on 3000).
+
+Seed drivers before simulating dispatch:
+
+```bash
+psql postgresql://driver:driver@localhost:5436/driver_db -f scripts/seed-drivers.sql
+```
 
 ## Run Nest apps
 
 ```bash
 npm install
+npm run docker:up
+npm run start:all
+```
+
+`start:all` runs api-gateway, order, dispatch, tracking, driver, and the web UI together. Press `Ctrl+C` once to stop all of them.
+
+Or start individually:
+
+```bash
 npm run start:api-gateway
 npm run start:order
 npm run start:dispatch
 npm run start:tracking
 npm run start:driver
+npm run start:web
 ```
 
-Check the gateway: `http://localhost:3000/health`
+Check the gateway: `http://localhost:3010/health`
 
-Ping a service through the gateway (that service must be running): `http://localhost:3000/health/order`
+Ping a service through the gateway (that service must be running): `http://localhost:3010/health/order`

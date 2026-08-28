@@ -13,7 +13,9 @@ import { REDIS_CLIENT } from './redis.provider';
 
 export const DISPATCH_EVENTS_TOPIC = 'dispatch.events';
 export const DRIVERS_GEO_KEY = 'drivers:geo';
-const SEARCH_RADIUS_KM = 5;
+export const SEARCH_RADIUS_KM = 5;
+/** Max radius when expanding beyond the 5 km pool (nearest-first fallback). */
+const FALLBACK_RADIUS_KM = 5000;
 const OFFER_TTL_SECONDS = 30;
 
 export type OrderCreatedEvent = {
@@ -246,7 +248,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       previousDrivers.map((row) => row.driverId),
     );
 
-    const candidates = await this.findNearbyDriverIds(longitude, latitude);
+    const candidates = await this.findCandidateDriverIds(longitude, latitude);
     for (const driverId of candidates) {
       if (skippedDriverIds.has(driverId)) {
         continue;
@@ -312,7 +314,31 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  private async findNearbyDriverIds(longitude: number, latitude: number) {
+  /**
+   * Drivers within 5 km first (nearest-first), then everyone else by distance.
+   * Re-dispatch skips drivers already tried for this order.
+   */
+  private async findCandidateDriverIds(longitude: number, latitude: number) {
+    const nearby = await this.geoSearchByRadius(
+      longitude,
+      latitude,
+      SEARCH_RADIUS_KM,
+    );
+    const nearbySet = new Set(nearby);
+    const fallback = await this.geoSearchByRadius(
+      longitude,
+      latitude,
+      FALLBACK_RADIUS_KM,
+    );
+    const beyondRadius = fallback.filter((driverId) => !nearbySet.has(driverId));
+    return [...nearby, ...beyondRadius];
+  }
+
+  private async geoSearchByRadius(
+    longitude: number,
+    latitude: number,
+    radiusKm: number,
+  ) {
     const members = (await this.redis.call(
       'GEOSEARCH',
       DRIVERS_GEO_KEY,
@@ -320,7 +346,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       longitude,
       latitude,
       'BYRADIUS',
-      SEARCH_RADIUS_KM,
+      radiusKm,
       'km',
       'ASC',
     )) as unknown;
