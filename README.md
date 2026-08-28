@@ -56,7 +56,7 @@ Each domain service has its own Postgres database. Redis (geo + locks) and Kafka
 ### 1. Clone and install
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/shahbaz957/DispatchOS
 cd Microservices_Dispatch_Engine
 npm install
 cd web && npm install && cd ..
